@@ -75,7 +75,34 @@ if __name__ == '__main__':
                 user_id=randint(1, User.query.count()),  # Ensure there are users in the database
             )
             db.session.add(animal)
+        
+        for _ in range(20):  # Adjust the number of messages you want
+            sender_id = randint(1, User.query.count())
+            receiver_id = randint(1, User.query.count())
+            chat_id = randint(1, Chat.query.count())
+            content = fake.sentence()
+
+            message = Message(
+                sender_id=sender_id,
+                receiver_id=receiver_id,
+                chat_id=chat_id,
+                content=content,
+             )
+            db.session.add(message)
 
         db.session.commit()
 
-        print("Seed completed!")
+# Seed Chats
+for _ in range(10):  # Adjust the number of chats you want
+    sender_id = randint(1, User.query.count())
+    receiver_id = randint(1, User.query.count())
+
+    # Ensure that a chat with the same sender and receiver doesn't already exist
+    existing_chat = Chat.query.filter_by(sender_id=sender_id, receiver_id=receiver_id).first()
+    if not existing_chat:
+        chat = Chat(sender_id=sender_id, receiver_id=receiver_id)
+        db.session.add(chat)
+
+db.session.commit()
+
+print("Seed completed!")

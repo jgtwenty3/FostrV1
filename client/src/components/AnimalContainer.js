@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import './App.css';
 import NavBar from "./NavBar.js";
+import Footer from "./Footer.js"
 
 function AnimalContainer() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,6 +141,7 @@ function AnimalContainer() {
           ))}
         </tbody>
       </table>
+      <Footer />
     </div>
   );
 }

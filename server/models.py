@@ -2,6 +2,7 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.associationproxy import association_proxy
 from flask_bcrypt import Bcrypt
 from sqlalchemy.ext.hybrid import hybrid_property
+from datetime import datetime
 
 from config import db
 
@@ -66,6 +67,29 @@ class Shelter(db.Model, SerializerMixin):
     def __repr__(self):
         return f'<Shelter {self.id}: {self.name}>'
 
+class Message(db.Model):
+        __tablename__ = 'messages'
+
+        id = db.Column(db.Integer, primary_key = True)
+        sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
+        receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
+        chat_id = db.Column(db.Integer, db.ForeignKey('chats.id'), nullable=False)
+        content = db.Column(db.String(255), nullable = False)
+        timestamp = db.Column(db.DateTime, default = datetime.utcnow, nullable = False)
+
+        sender = db.relationship('User', foreign_keys=[sender_id], backref = 'sent_messages')
+        receiver = db.relationship('User', foreign_keys = [receiver_id], backref = 'received_messages')
+        chat = db.relationship('Chat', back_populates='messages') 
+
+
+        def to_dict(self):
+            return {
+                'id': self.id,
+                'sender': self.sender.username,
+                'receiver': self.receiver.username,
+                'content': self.content,
+                'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            }
 
 class Animal(db.Model, SerializerMixin):
     __tablename__ = 'animals'
@@ -99,6 +123,30 @@ class Animal(db.Model, SerializerMixin):
 
     # Update serialization rules
     serialize_rules = ['-shelter.animals', '-user']
+
+class Chat(db.Model):
+    __tablename__ = 'chats'
+
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    # Define the foreign key relationship with the Message model
+    messages = db.relationship('Message', back_populates='chat', viewonly=True)
+
+    def __init__(self, sender_id, receiver_id):
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user1_id': self.user1_id,
+            'user2_id': self.user2_id,
+            # Add other fields as needed
+        }
+
+    
 
     def __repr__(self):
         return f'<Animal {self.id}: {self.name}>'

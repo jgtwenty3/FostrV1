@@ -1,6 +1,5 @@
 import React from "react";
-import { NavLink, useHistory} from "react-router-dom";
-
+import { NavLink, useHistory } from "react-router-dom";
 
 function UserNavBar() {
   const history = useHistory();
@@ -30,6 +29,11 @@ function UserNavBar() {
         <li>
           <NavLink to="/animal-feed" activeClassName="active">
             Animals
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/inbox" activeClassName="active">
+            Inbox
           </NavLink>
         </li>
         <li>

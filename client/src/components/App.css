@@ -459,6 +459,88 @@ select {
   border: 1px solid #ccc;
   border-radius: 5px;
 }
+.footer-container {
+  background-color: #f0f0f0;
+  padding: 20px;
+  text-align: center;
+}
+
+.footer-text {
+  color: #333;
+  font-size: 14px;
+}
+
+/* Inbox.css */
+
+/* Inbox container */
+.inbox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: column;
+  margin: 20px;
+}
+
+/* Chat list styles */
+.chat-list {
+  width: 200px;
+  border-right: 1px solid #ccc;
+  padding-right: 10px;
+}
+
+.chat-list div {
+  cursor: pointer;
+  padding: 10px;
+  margin-bottom: 5px;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.chat-list div:hover {
+  background-color: #f0f0f0;
+}
+
+.selected-chat {
+  background-color: #3498db;
+  color: white;
+}
+
+/* Chat messages styles */
+.chat-messages {
+  flex: 1;
+  margin-left: 20px;
+}
+
+.message-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.new-message input {
+  width: 80%;
+  padding: 8px;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.new-message button {
+  padding: 10px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.new-message button:hover {
+  background-color: #2980b9;
+}
+
 
 
 

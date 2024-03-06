@@ -13,6 +13,7 @@ import Login from "./components/Login.js";
 import Signup from "./components/Signup.js";
 import AnimalFeed from "./components/AnimalFeed.js";
 import AboutFostr from "./components/AboutFostr.js";
+import Inbox from "./components/Inbox.js";
 
 
 
@@ -53,7 +54,10 @@ export default function Launch() {
         </Route> 
         <Route path="/about-fostr">
           <AboutFostr/>
-        </Route> 
+        </Route>
+        <Route path="/Inbox">
+          <Inbox/>
+        </Route>
       </Switch>
     </BrowserRouter>
   );

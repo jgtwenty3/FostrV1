@@ -1,17 +1,29 @@
-#!/usr/bin/env python3
-
-# Standard library imports
-
-# Remote library imports
-from flask import Flask, request, session, redirect, url_for
+from flask import Flask, request, session, redirect, url_for, render_template, jsonify
 from flask_bcrypt import Bcrypt
-# Local imports
+from sqlalchemy import desc
+from flask_socketio import SocketIO, emit
 
 from config import app, db, migrate, api
-# Add your model imports
-from models import db, User, Shelter, Animal
 
-# Views go here!
+from models import db, User, Shelter, Animal, Message, Chat
+
+# Views
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+chats = [
+    {"id": 1, "user1": 1, "user2": 2},
+    {"id": 2, "user1": 1, "user2": 3},
+    # ... other chat entries
+]
+messages = [
+    {"id": 1, "chat_id": 1, "sender": 1, "content": "Hello, how are you?"},
+    {"id": 2, "chat_id": 1, "sender": 2, "content": "I'm good, thank you!"},
+    # ... other message entries
+]
+
+def get_authenticated_user_id():
+    return  current_user.id
+   
 
 def home():
     return ''
@@ -30,6 +42,8 @@ def signup():
     valid_usertypes = ['user', 'admin']
     if json_data['usertype'] not in valid_usertypes:
         return {'error': f'Invalid usertype. Must be one of: {", ".join(valid_usertypes)}'}, 400
+    
+    
 
     # Create a new user instance
     new_user = User(
@@ -69,6 +83,8 @@ def login():
     # Update session with user_id and user_type
     session['user_id'] = user.id
     session['user_type'] = user.usertype
+
+    socketio.emit('message', {'content': f'Welcome, {user.username}!'}, namespace='/')
 
     return user.to_dict(), 200  
 
@@ -210,7 +226,115 @@ def shelters_by_id(id):
 
         return shelter.to_dict(), 200
 
+@socketio.on('message')
+def handle_message(data):
+    sender_id = data.get('senderId')
+    receiver_id = data.get('receiverId')
+    content = data.get('content')
 
+    # Save the message to the database
+    new_message = Message(sender_id=sender_id, receiver_id=receiver_id, content=content)
+    db.session.add(new_message)
+    db.session.commit()
+
+    # Emit the message to the sender and receiver
+    emit('message', new_message.to_dict(), room=f'user_{sender_id}')
+    emit('message', new_message.to_dict(), room=f'user_{receiver_id}')
+
+
+
+@app.route('/messages', methods=['GET'])
+def get_user_messages():
+    user_id = session.get('user_id')
+
+    if user_id is not None:
+        try:
+           
+            page = int(request.args.get('page', 1))
+            limit = int(request.args.get('limit', 10))
+
+            
+            offset = (page - 1) * limit
+
+            # Fetch messages for the current user ordered by timestamp
+            messages = Message.query.filter(
+                (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+            ).order_by(desc(Message.timestamp)).offset(offset).limit(limit).all()
+
+            # Convert messages to a list of dictionaries
+            messages_list = [message.to_dict() for message in messages]
+
+            return messages_list, 200
+
+        except ValueError:
+            return {'error': 'Invalid page or limit parameter'}, 400
+
+    return {'error': 'User not authenticated'}, 401
+
+@app.route('/create_chat', methods=['POST'])
+def create_chat():
+    try:
+        data = request.get_json()
+        sender_id = data.get('sender_Id')  # Make sure the keys match the frontend data
+        receiver_id = data.get('receiver_Id')
+
+        # Create a new chat
+        new_chat = Chat(sender_id=sender_id, receiver_id=receiver_id)
+        db.session.add(new_chat)
+        db.session.commit()
+
+        return jsonify({'message': 'Chat created successfully'}), 201
+    except Exception as e:
+        print(e)
+        return jsonify({'error': 'Error creating chat'}), 500
+
+@app.route('/chats', methods=['GET'])
+def get_user_chats():
+    user_id = session.get('user_id')
+
+    if user_id is not None:
+        # Fetch chats for the current user
+        chats = Chat.query.filter(
+            (Chat.sender_id == user_id) | (Chat.receiver_id == user_id)
+        ).all()
+
+        # Convert chats to a list of dictionaries
+        chats_list = [chat.to_dict() for chat in chats]
+
+        return chats_list, 200
+
+    return {'error': 'User not authenticated'}, 401
+
+    return {'message': 'Chat created successfully'}, 201
+
+@app.route('/chats/<int:chat_id>/messages', methods=['GET'])
+def get_chat_messages(chat_id):
+    user_id = session.get('user_id')
+
+    if user_id is not None:
+        # Fetch messages for the specific chat
+        messages = Message.query.filter_by(chat_id=chat_id).all()
+
+        # Convert messages to a list of dictionaries
+        messages_list = [message.to_dict() for message in messages]
+
+        return messages_list, 200
+
+    return {'error': 'User not authenticated'}, 401
+
+@app.route('/chat/<int:chat_id>/messages', methods=['GET'])
+def get_messages(chat_id):
+    chat_messages = [message for message in messages if message['chat_id'] == chat_id]
+    return jsonify(chat_messages)
+
+@app.route('/chat/<int:chat_id>/send_message', methods=['POST'])
+def send_message(chat_id):
+    data = request.json
+    content = data.get('content')
+    sender = get_authenticated_user_id()
+    new_message = {"id": len(messages) + 1, "chat_id": chat_id, "sender": sender, "content": content}
+    messages.append(new_message)
+    return jsonify({"success": True, "message": new_message})
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
