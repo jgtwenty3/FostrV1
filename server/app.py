@@ -5,21 +5,11 @@ from flask_socketio import SocketIO, emit
 
 from config import app, db, migrate, api
 
-from models import db, User, Shelter, Animal, Message, Chat
+from models import db, User, Shelter, Animal, Message
 
 # Views
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-chats = [
-    {"id": 1, "user1": 1, "user2": 2},
-    {"id": 2, "user1": 1, "user2": 3},
-    # ... other chat entries
-]
-messages = [
-    {"id": 1, "chat_id": 1, "sender": 1, "content": "Hello, how are you?"},
-    {"id": 2, "chat_id": 1, "sender": 2, "content": "I'm good, thank you!"},
-    # ... other message entries
-]
 
 def get_authenticated_user_id():
     return  current_user.id
@@ -243,98 +233,54 @@ def handle_message(data):
 
 
 
-@app.route('/messages', methods=['GET'])
-def get_user_messages():
-    user_id = session.get('user_id')
+@app.route('/messages', methods=['GET', 'POST'])
+def messages_route():
+    if request.method == 'GET':
+        user_id = session.get('user_id')
 
-    if user_id is not None:
-        try:
-           
-            page = int(request.args.get('page', 1))
-            limit = int(request.args.get('limit', 10))
+        if user_id is not None:
+            try:
+                page = int(request.args.get('page', 1))
+                limit = int(request.args.get('limit', 10))
 
-            
-            offset = (page - 1) * limit
+                offset = (page - 1) * limit
 
-            # Fetch messages for the current user ordered by timestamp
-            messages = Message.query.filter(
-                (Message.sender_id == user_id) | (Message.receiver_id == user_id)
-            ).order_by(desc(Message.timestamp)).offset(offset).limit(limit).all()
+                # Fetch messages for the current user ordered by timestamp
+                messages = Message.query.filter(
+                    (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+                ).order_by(desc(Message.timestamp)).offset(offset).limit(limit).all()
 
-            # Convert messages to a list of dictionaries
-            messages_list = [message.to_dict() for message in messages]
+                # Convert messages to a list of dictionaries
+                messages_list = [message.to_dict() for message in messages]
 
-            return messages_list, 200
+                return jsonify(messages_list), 200
 
-        except ValueError:
-            return {'error': 'Invalid page or limit parameter'}, 400
+            except ValueError:
+                return jsonify({'error': 'Invalid page or limit parameter'}), 400
 
-    return {'error': 'User not authenticated'}, 401
+        return jsonify({'error': 'User not authenticated'}), 401
 
-@app.route('/create_chat', methods=['POST'])
-def create_chat():
-    try:
-        data = request.get_json()
-        sender_id = data.get('sender_Id')  # Make sure the keys match the frontend data
-        receiver_id = data.get('receiver_Id')
+    elif request.method == 'POST':
+        json_data = request.get_json()
 
-        # Create a new chat
-        new_chat = Chat(sender_id=sender_id, receiver_id=receiver_id)
-        db.session.add(new_chat)
+        # Validate required fields
+        required_fields = ['sender_id', 'receiver_id', 'content']
+        for field in required_fields:
+            if field not in json_data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+
+        # Create a new message instance
+        new_message = Message(
+            sender_id=json_data['sender_id'],
+            receiver_id=json_data['receiver_id'],
+            content=json_data['content']
+        )
+
+        # Add the new message to the database
+        db.session.add(new_message)
         db.session.commit()
 
-        return jsonify({'message': 'Chat created successfully'}), 201
-    except Exception as e:
-        print(e)
-        return jsonify({'error': 'Error creating chat'}), 500
-
-@app.route('/chats', methods=['GET'])
-def get_user_chats():
-    user_id = session.get('user_id')
-
-    if user_id is not None:
-        # Fetch chats for the current user
-        chats = Chat.query.filter(
-            (Chat.sender_id == user_id) | (Chat.receiver_id == user_id)
-        ).all()
-
-        # Convert chats to a list of dictionaries
-        chats_list = [chat.to_dict() for chat in chats]
-
-        return chats_list, 200
-
-    return {'error': 'User not authenticated'}, 401
-
-    return {'message': 'Chat created successfully'}, 201
-
-@app.route('/chats/<int:chat_id>/messages', methods=['GET'])
-def get_chat_messages(chat_id):
-    user_id = session.get('user_id')
-
-    if user_id is not None:
-        # Fetch messages for the specific chat
-        messages = Message.query.filter_by(chat_id=chat_id).all()
-
-        # Convert messages to a list of dictionaries
-        messages_list = [message.to_dict() for message in messages]
-
-        return messages_list, 200
-
-    return {'error': 'User not authenticated'}, 401
-
-@app.route('/chat/<int:chat_id>/messages', methods=['GET'])
-def get_messages(chat_id):
-    chat_messages = [message for message in messages if message['chat_id'] == chat_id]
-    return jsonify(chat_messages)
-
-@app.route('/chat/<int:chat_id>/send_message', methods=['POST'])
-def send_message(chat_id):
-    data = request.json
-    content = data.get('content')
-    sender = get_authenticated_user_id()
-    new_message = {"id": len(messages) + 1, "chat_id": chat_id, "sender": sender, "content": content}
-    messages.append(new_message)
-    return jsonify({"success": True, "message": new_message})
+        return jsonify({'message': 'Message sent successfully'}), 201
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
