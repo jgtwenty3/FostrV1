@@ -11,8 +11,6 @@ from models import db, User, Shelter, Animal, Message
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
-def get_authenticated_user_id():
-    return  current_user.id
    
 
 def home():
@@ -234,7 +232,7 @@ def handle_message(data):
 
 
 @app.route('/messages', methods=['GET', 'POST'])
-def messages_route():
+def get_user_messages():
     if request.method == 'GET':
         user_id = session.get('user_id')
 
@@ -253,35 +251,23 @@ def messages_route():
                 # Convert messages to a list of dictionaries
                 messages_list = [message.to_dict() for message in messages]
 
-                return jsonify(messages_list), 200
+                return messages_list, 200
 
             except ValueError:
-                return jsonify({'error': 'Invalid page or limit parameter'}), 400
+                return {'error': 'Invalid page or limit parameter'}, 400
 
-        return jsonify({'error': 'User not authenticated'}), 401
+        return {'error': 'User not authenticated'}, 401
 
     elif request.method == 'POST':
-        json_data = request.get_json()
-
-        # Validate required fields
-        required_fields = ['sender_id', 'receiver_id', 'content']
-        for field in required_fields:
-            if field not in json_data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
-
-        # Create a new message instance
-        new_message = Message(
-            sender_id=json_data['sender_id'],
-            receiver_id=json_data['receiver_id'],
-            content=json_data['content']
-        )
-
-        # Add the new message to the database
+        data = request.json
+        content = data.get('content')
+        sender_id = session.get('user_id')
+        receiver_id = data.get('receiver_id')  # Get the receiver_id from the request payload
+        new_message = Message(sender_id=sender_id, receiver_id=receiver_id, content=content)
         db.session.add(new_message)
         db.session.commit()
 
-        return jsonify({'message': 'Message sent successfully'}), 201
-
+        return new_message.to_dict(), 201
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
 

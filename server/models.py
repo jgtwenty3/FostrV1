@@ -38,8 +38,20 @@ class User(db.Model, SerializerMixin):
     # Add relationships
     animals = db.relationship('Animal', back_populates='user')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'usertype': self.usertype,
+            'email': self.email,
+            'phone': self.phone,
+            'address': self.address
+            
+        }
+
     # Update serialization rules
     serialize_rules = ['-animal.user']
+    
 
     def __repr__(self):
         return f'<User {self.id}: {self.username}>'
@@ -72,7 +84,7 @@ class Message(db.Model):
 
         id = db.Column(db.Integer, primary_key = True)
         sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
-        receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable = False)
+        receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'))
         content = db.Column(db.String(255), nullable = False)
         timestamp = db.Column(db.DateTime, default = datetime.utcnow, nullable = False)
 
