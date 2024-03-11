@@ -1,6 +1,6 @@
 Fostr
 
-Fostr in its' current form is a dadtabase management system for animal shelters and rescues as well as a site for users to browse(and hopefully adopt/foster) animals. 
+Fostr in its' current form is a database management system for animal shelters and rescues as well as a site for users to browse(and hopefully adopt/foster) animals. 
 
 For shelters and rescues, it allows you to add, edit, and manage your intake and flow of animals. Eventually, I'd like to add in features for chat/messaging, custom forms, and more. 
 
